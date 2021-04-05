@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -31,17 +32,20 @@ func UnwrapTd(str string) string {
 	return strings.TrimLeft(strings.TrimRight(str, "</td>"), "<td>")
 }
 
-func UnwrapPre(str string) *Pre {
+func UnwrapPre(str string) (*Pre, error) {
 	pre := &Pre{}
 	str = strings.Trim(str, " ")
 	reg := regexp.MustCompile(`<pre[ -~]*>([ -~\n]*)BUG`)
 
 	mesg := reg.FindStringSubmatch(str)
+	if len(mesg) < 1 {
+		return nil, fmt.Errorf("invalid branch name/url")
+	}
 	pre.Message = mesg[1]
 
 	reg2 := regexp.MustCompile(`[ -~]*Reviewed-by:([ -~]*)`)
 	revby := reg2.FindStringSubmatch(str)
 	pre.RevBy = revby[1]
 
-	return pre
+	return pre, nil
 }

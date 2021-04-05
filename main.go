@@ -1,17 +1,32 @@
 package main
 
 import (
-	"cdp-go/container"
-	"cdp-go/utils"
 	"context"
+	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/mafredri/cdp"
 	"github.com/mafredri/cdp/devtool"
 	"github.com/mafredri/cdp/protocol/dom"
 	"github.com/mafredri/cdp/protocol/page"
 	"github.com/mafredri/cdp/rpcc"
-	"strings"
-	"time"
+
+	"cdp-go/container"
+	"cdp-go/utils"
+)
+
+var (
+	timeout      = flag.Int("timeout", 20, "context timeout in seconds")
+	repoURL      = flag.String("repo", "https://chromium.googlesource.com/chromiumos/platform/tast", "Repository URL")
+	repoBranch   = flag.String("branch", "main", "branch name where the parser should run")
+	saveLocation = flag.String("dir", "./commits", "folder where parsed commit messages is going to be stored")
+	csvPath      = flag.String("csvpath", "stats.csv", "csv file location where the details statistics is going to be stored")
+	numCommits   = flag.Int("commits", 20, "Number of commits to be parsed")
 )
 
 var (
@@ -20,18 +35,31 @@ var (
 )
 
 func main() {
+	flag.Parse()
+	PrintInfo()
+
 	pool = container.NewContainer()
 	wb = utils.NewWriteBuffer()
 
 	//incase context timed-out
 	//persist already fetched data
 	defer func() {
-		must(wb.DumpContent("./commits"))
-		must(pool.WriteCSV("stats.csv"))
+		must(wb.DumpContent(*saveLocation))
+		must(pool.WriteCSV(*csvPath))
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
 	defer cancel()
+
+	//graceful shutdown
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sig)
+
+	go func() {
+		<-sig
+		cancel()
+	}()
 
 	devt := devtool.New("http://127.0.0.1:9222")
 	pt, err := devt.Get(ctx, devtool.Page)
@@ -52,25 +80,21 @@ func main() {
 
 	err = c.Page.Enable(ctx)
 	must(err)
-	FULLURL := "https://chromium.googlesource.com/chromiumos/platform/tast"
+
+	FULLURL := strings.Trim(*repoURL, "/")
+	if !strings.HasPrefix(FULLURL, "https://") {
+		FULLURL = "https://" + FULLURL
+	}
+
 	splits := strings.Split(FULLURL, "/")
 	HARDURL := strings.Join(splits[:3], "/")
 	SOFTURL := "/" + strings.Join(splits[3:], "/")
-	fmt.Println(HARDURL)
-	fmt.Println(SOFTURL)
 
-	defaultBranch := "main"
-	//switch to a branch & check if it exists
+	defaultBranch := *repoBranch
+	//switch to a branch & will be checked in UnwrapPre if it exists
 	SOFTURL += "/+/refs/heads/" + defaultBranch
-	//navArgs := page.NewNavigateArgs(HARDURL + SOFTURL)
-	//_, err = c.Page.Navigate(ctx, navArgs)
-	//if err != nil {
-	//	panic(fmt.Errorf("bad branch name!! Default branch is main"))
-	//}
 
-	numCnt := 20
-
-	for cnt := 0; cnt < numCnt; cnt++ {
+	for cnt := 0; cnt < *numCommits; cnt++ {
 		fmt.Println("Commit No: ", cnt+1)
 		navArgs := page.NewNavigateArgs(HARDURL + SOFTURL)
 		_, err := c.Page.Navigate(ctx, navArgs)
@@ -91,7 +115,9 @@ func main() {
 			NodeID: &pre.NodeID,
 		})
 
-		parsedPre := utils.UnwrapPre(preRes.OuterHTML)
+		parsedPre, err := utils.UnwrapPre(preRes.OuterHTML)
+		must(err)
+
 		revBy := utils.ExtractIdentity(parsedPre.RevBy)
 		pool.AddReview(revBy)
 
@@ -144,6 +170,17 @@ func main() {
 
 	}
 
+}
+
+func PrintInfo() {
+	fmt.Printf("Repo Branch\t\t: %s\n", *repoBranch)
+	fmt.Printf("Commits Num\t\t: %d\n", *numCommits)
+	fmt.Printf("Repo URL\t\t: %s\n", *repoURL)
+	fmt.Printf("Timeout (seconds)\t: %d\n", *timeout)
+	fmt.Printf("Folder Location\t\t: %s\n", *saveLocation)
+	fmt.Printf("CSV Path\t\t: %s\n", *csvPath)
+
+	fmt.Println("==================================================\n")
 }
 
 func must(err error) {
