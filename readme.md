@@ -65,3 +65,6 @@ A full example can be summarized as
  #inside the container
  ./main -csvpath ./commits/statistics.csv
 ```
+Program output
+![image](https://user-images.githubusercontent.com/41498427/113560638-e7fa6a00-9620-11eb-98c3-ee42a98a36e3.png)
+
