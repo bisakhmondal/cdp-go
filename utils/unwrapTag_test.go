@@ -1,17 +1,11 @@
 package utils
 
 import (
-	"fmt"
 	"regexp"
 	"testing"
 )
 
-func TestTagA(t *testing.T) {
-
-	//td := "<td>7c0d166f03835f218d69f6fc6deec293512600ce</td>"
-	//fmt.Println(unwrapTd(td))
-	//anc := `<a href="/chromiumos/platform/tast-tests/+/7c0d166f03835f218d69f6fc6deec293512600ce%5E">564f598b77e3644a4de5f44b4046a93d2febee91</a>`
-	//fmt.Printf("%+v", unwrapA(anc))
+func TestTagPre(t *testing.T) {
 	pre := `<pre class="u-pre u-monospace MetadataMessage">policy: Demote policy.PromptForDownloadLocation to informational
 
 Temporarily mark policy.PromptForDownloadLocation to informational
@@ -30,12 +24,55 @@ Reviewed-by: Jorge Lucangeli Obes &lt;jorgelo@chromium.org&gt;
 `
 	reg := regexp.MustCompile(`<pre[ -~]*>([ -~\n]*)BUG`)
 
-	match := reg.FindStringSubmatch(pre)
-	fmt.Println(match[1])
+	gotMatch := reg.FindStringSubmatch(pre)
+	wantPre := `policy: Demote policy.PromptForDownloadLocation to informational
+
+Temporarily mark policy.PromptForDownloadLocation to informational
+in order not to block the CQ.
+
+`
+	if len(gotMatch) < 1 {
+		t.Fatal("can't parse message in pre tag")
+	}
+
+	if gotMatch[1] != wantPre {
+		t.Fatal("capture group failed")
+	}
 
 	revBy := regexp.MustCompile(`[ -~]*Reviewed-by:([ -~]*)`)
-	match2 := revBy.FindStringSubmatch(pre)
-	fmt.Println(match2[1])
+	gotMatchRev := revBy.FindStringSubmatch(pre)
+	if len(gotMatch) < 1 {
+		t.Fatal("can't parse Reviewed-by in pre tag")
+	}
 
-	fmt.Printf("%+v", ExtractIdentity(match2[1]))
+	getRevBy := ExtractIdentity(gotMatchRev[1])
+	wantRevBy := &Identity{
+		Name:  "Jorge Lucangeli Obes",
+		Email: "jorgelo@chromium.org",
+	}
+	if *getRevBy != *wantRevBy {
+		t.Fatal("extract identity parsing failed")
+	}
+}
+
+func TestTagAnchor(t *testing.T) {
+	anc := `<a href="/chromiumos/platform/tast-tests/+/7c0d166f03835f218d69f6fc6deec293512600ce%5E">564f598b77e3644a4de5f44b4046a93d2febee91</a>`
+	got := UnwrapA(anc)
+	want := &Anchor{
+		Name: "564f598b77e3644a4de5f44b4046a93d2febee91",
+		Url:  "/chromiumos/platform/tast-tests/+/7c0d166f03835f218d69f6fc6deec293512600ce%5E",
+	}
+	if *got != *want {
+		t.Fatal("unwrap anchor failed")
+	}
+}
+
+func TestTagTD(t *testing.T) {
+	td := "<td>7c0d166f03835f218d69f6fc6deec293512600ce</td>"
+	got := UnwrapTd(td)
+	want := "7c0d166f03835f218d69f6fc6deec293512600ce"
+
+	if got != want {
+		t.Fatal("unwrap td failed")
+	}
 }
