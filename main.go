@@ -42,7 +42,7 @@ func main() {
 
 func scraper() error {
 
-	// A container which keeps track of
+	// A container which keeps track of user specific review count and commit count
 	pool := container.NewContainer()
 	// A temporary buffer to store commit messages with commitID as filename, which is going to be flushed into files later
 	wb := utils.NewWriteBuffer()
