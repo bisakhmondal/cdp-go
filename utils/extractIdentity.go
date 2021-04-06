@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// Identity Struct with Name Email fields. Used for reviewer & committer
 type Identity struct {
 	Name, Email string
 }
 
+// Parse raw text to extract out name and email
 func ExtractIdentity(str string) *Identity {
 	str = strings.Replace(str, "&lt;", "<", -1)
 	str = strings.Replace(str, "&gt;", ">", -1)
