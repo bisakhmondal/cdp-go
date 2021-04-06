@@ -1,4 +1,4 @@
-# Chromium Starter work
+# Starter work
 
 ### A fully functional dynamic parser and analyser for chromium git repo using chrome devtools protocol (CDP)
 
@@ -20,7 +20,7 @@ go run main.go
 Flag Name | Default Flag Value | Usage |
 ---- | --- | --- |
 -timeout  | 20 | context timeout in seconds|
--repo | https://chromium.googlesource.com/chromiumos/platform/tast |Repository URL |
+-repo | /chromium.googlesource.com/chromiumos/platform/tast |Repository URL |
 -branch  | main | branch name where the parser should run |
 -dir | ./commits |  folder where parsed commit messages is going to be stored |
 -csvpath |stats.csv  | csv file location where the details statistics is going to be stored |
@@ -60,11 +60,19 @@ A full example can be summarized as
 ```shell
  docker build -t hchrome .
  #The result will be stored in ~/Desktop/test in local machine.
- docker run --name scraper -p 9222:9222 -v ~/Desktop/test:/go-cdp/commits -d hchrome
+ docker run --name scraper -v ~/Desktop/test:/go-cdp/commits -d hchrome
  docker exec -it scraper /bin/bash
  #inside the container
  ./main -csvpath ./commits/statistics.csv
 ```
+
 Program output
 ![image](https://user-images.githubusercontent.com/41498427/113560638-e7fa6a00-9620-11eb-98c3-ee42a98a36e3.png)
 
+** In case you feel any trouble in opening files, saved through docker container, please run
+
+```shell
+sudo chown -R $(whoami) <Mount Volume Path>/
+```
+
+**Extras**** Support for parsing very large number of commits by adding sleep of 5-10 seconds after parsing 50 of commits to bypass the rate-limiter :) (tested with 800 commits, please update your timeout accordingly)

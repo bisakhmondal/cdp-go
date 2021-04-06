@@ -14,5 +14,4 @@ RUN apk add bash
 WORKDIR /go-cdp
 COPY --from=build-env /go-cdp /go-cdp
 
-EXPOSE 9222
 CMD ["chromium-browser", "--headless", "--no-sandbox", "--remote-debugging-port=9222"]
