@@ -1,0 +1,8 @@
+bundle: implement VarDeps
+
+This is a part of CLs to support VarDeps.
+In this CL, I updated bundle code.
+
+- TestInstance.VarDeps is added
+- FeatureArgs.MaybeMissingVars is added (tast CLI will pass it)
+

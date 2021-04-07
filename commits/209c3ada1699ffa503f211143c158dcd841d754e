@@ -1,0 +1,8 @@
+run: add -maybemissingvars flag
+
+This is the last CL to implement VarDeps support.
+
+This change adds -maybemissingvars flag to Tast CLI, which enables us to
+control whether to skip or fail tests when certain runtime variables
+dependencies are not satisfied.
+

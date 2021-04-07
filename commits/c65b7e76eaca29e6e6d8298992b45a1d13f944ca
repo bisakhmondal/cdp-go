@@ -1,0 +1,5 @@
+testing: refactor test
+
+The latter part of TestInstantiate is not relevant to instantiation logic.
+This part is now covered with TestSoftwareDeps and TestHardwareDeps.
+
