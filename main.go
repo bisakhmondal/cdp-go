@@ -36,20 +36,22 @@ func main() {
 
 	// A container which keeps track of user specific review count and commit count
 	pool := core.NewContainer()
-	// A temporary buffer to store commit messages with commitID as filename, which is going to be flushed into files later
+	// A temporary buffer to store commit messages with commitID as filename, which is going to be flushed in the background
 	wb, err := persist.NewWriteBuffer(*saveLocation)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s", err)
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 	wb.Init()
 
-	// In case context timed-out, persist already fetched data
+	// In case context timed-out/ error occured/ signal received, exit gracefully
 	defer func() {
 		wb.Quit()
 		err := pool.WriteCSV(*csvPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to write csv: %s", err)
+		} else {
+			fmt.Println("CSV saved to disk")
 		}
 	}()
 
@@ -61,17 +63,27 @@ func main() {
 	signal.Notify(sig, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sig)
 
+	quit := make(chan error, 1)
 	go func() {
-		<-sig
-		fmt.Println("Exiting...")
-		cancel()
+		err := scraper(ctx, pool, wb)
+		quit <- err
 	}()
 
-	if err := scraper(ctx, pool, wb); err != nil {
-		panic(err)
-	}
+	select {
+	case err := <-quit:
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error occured: %s\n", err)
+		} else {
+			fmt.Println("Execution Complete")
+		}
 
-	fmt.Println("Execution Complete")
+	case <-ctx.Done():
+		fmt.Println("context timeout exceeded/got cancelled")
+
+	case sigtype := <-sig:
+		cancel()
+		fmt.Printf("%s signal received. exiting...\n", sigtype.String())
+	}
 }
 
 func scraper(ctx context.Context, pool *core.Container, wb *persist.WriteBuffer) error {
