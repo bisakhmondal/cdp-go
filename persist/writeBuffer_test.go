@@ -1,6 +1,8 @@
-package utils
+package persist
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBuffer(t *testing.T) {
 	w := NewWriteBuffer()

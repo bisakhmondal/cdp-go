@@ -16,7 +16,8 @@ import (
 	"github.com/mafredri/cdp/protocol/page"
 	"github.com/mafredri/cdp/rpcc"
 
-	"cdp-go/container"
+	"cdp-go/core"
+	"cdp-go/persist"
 	"cdp-go/utils"
 )
 
@@ -33,30 +34,23 @@ func main() {
 	flag.Parse()
 	PrintInfo()
 
-	if err := scraper(); err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Execution Complete")
-}
-
-func scraper() error {
-
 	// A container which keeps track of user specific review count and commit count
-	pool := container.NewContainer()
+	pool := core.NewContainer()
 	// A temporary buffer to store commit messages with commitID as filename, which is going to be flushed into files later
-	wb := utils.NewWriteBuffer()
-
-	var err error
+	wb, err := persist.NewWriteBuffer(*saveLocation)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err)
+		os.Exit(1)
+	}
+	wb.Init()
 
 	// In case context timed-out, persist already fetched data
-	defer func() error {
-		err = wb.DumpContent(*saveLocation)
+	defer func() {
+		wb.Quit()
+		err := pool.WriteCSV(*csvPath)
 		if err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "failed to write csv: %s", err)
 		}
-		err = pool.WriteCSV(*csvPath)
-		return err
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeout)*time.Second)
@@ -73,6 +67,14 @@ func scraper() error {
 		cancel()
 	}()
 
+	if err := scraper(ctx, pool, wb); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Execution Complete")
+}
+
+func scraper(ctx context.Context, pool *core.Container, wb *persist.WriteBuffer) error {
 	devt := devtool.New("http://127.0.0.1:9222")
 	pt, err := devt.Get(ctx, devtool.Page)
 	if err != nil {
@@ -133,10 +135,10 @@ func scraper() error {
 			}
 		}
 	}
-	return err
+	return nil
 }
 
-func parseCommitPage(ctx context.Context, client *cdp.Client, pool *container.Container, wb *utils.WriteBuffer) (*utils.Anchor, error) {
+func parseCommitPage(ctx context.Context, client *cdp.Client, pool *core.Container, wb *persist.WriteBuffer) (*utils.Anchor, error) {
 	// Get the whole DOM
 	doc, err := client.DOM.GetDocument(ctx, nil)
 	if err != nil {
@@ -162,7 +164,7 @@ func parseCommitPage(ctx context.Context, client *cdp.Client, pool *container.Co
 	}
 
 	// Parsed email, name of Reviewed-BY
-	revBy := utils.ExtractIdentity(parsedPre.RevBy)
+	revBy := core.ExtractIdentity(parsedPre.RevBy)
 	// Increment his/her review count
 	pool.AddReview(revBy)
 
@@ -198,7 +200,7 @@ func parseCommitPage(ctx context.Context, client *cdp.Client, pool *container.Co
 	// Unwrap author from HTML tag
 	authorRaw := utils.UnwrapTd(authorHTML.OuterHTML)
 	// Parse email and name from string
-	author := utils.ExtractIdentity(authorRaw)
+	author := core.ExtractIdentity(authorRaw)
 
 	// Increment his/her commit count
 	pool.AddCommit(author)

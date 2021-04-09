@@ -1,12 +1,10 @@
-package container
+package core
 
 import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
 	"strconv"
-
-	"cdp-go/utils"
 )
 
 // Struct to keep track (as Key-Value pair) of all commits and reviews made by individual developers. Email has been considered as key.
@@ -19,7 +17,7 @@ func NewContainer() *Container {
 }
 
 // Method to increment commit count for a particular identity
-func (c *Container) AddCommit(id *utils.Identity) {
+func (c *Container) AddCommit(id *Identity) {
 
 	dev, ok := c.maps[id.Email]
 
@@ -32,7 +30,7 @@ func (c *Container) AddCommit(id *utils.Identity) {
 }
 
 // Method to increment review count for a particular identity
-func (c *Container) AddReview(id *utils.Identity) {
+func (c *Container) AddReview(id *Identity) {
 	dev, ok := c.maps[id.Email]
 
 	if !ok {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -41,17 +42,13 @@ in order not to block the CQ.
 
 	revBy := regexp.MustCompile(`[ -~]*Reviewed-by:([ -~]*)`)
 	gotMatchRev := revBy.FindStringSubmatch(pre)
-	if len(gotMatch) < 1 {
+	if len(gotMatchRev) < 1 {
 		t.Fatal("can't parse Reviewed-by in pre tag")
 	}
+	wantRev := "Jorge Lucangeli Obes &lt;jorgelo@chromium.org&gt;"
 
-	getRevBy := ExtractIdentity(gotMatchRev[1])
-	wantRevBy := &Identity{
-		Name:  "Jorge Lucangeli Obes",
-		Email: "jorgelo@chromium.org",
-	}
-	if *getRevBy != *wantRevBy {
-		t.Fatal("extract identity parsing failed")
+	if strings.Trim(gotMatchRev[1], " ") != wantRev {
+		t.Fatal("error during regex match")
 	}
 }
 

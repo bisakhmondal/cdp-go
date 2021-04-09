@@ -1,18 +1,16 @@
-package container
+package core
 
 import (
 	"fmt"
-
-	"cdp-go/utils"
 )
 
 // Struct for individual developer with commit, review count
 type Developer struct {
-	*utils.Identity
+	*Identity
 	NumCommit, NumReview int
 }
 
-func NewDeveloper(id *utils.Identity) *Developer {
+func NewDeveloper(id *Identity) *Developer {
 	return &Developer{
 		Identity:  id,
 		NumCommit: 0,
