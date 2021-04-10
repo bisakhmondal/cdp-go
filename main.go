@@ -42,7 +42,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
-	wb.Init()
 
 	// In case context timed-out/ error occured/ signal received, exit gracefully
 	defer func() {
@@ -69,17 +68,16 @@ func main() {
 		quit <- err
 	}()
 
+	wb.Init(quit)
+
 	select {
 	case err := <-quit:
 		if err != nil {
+			cancel()
 			fmt.Fprintf(os.Stderr, "error occured: %s\n", err)
 		} else {
 			fmt.Println("Execution Complete")
 		}
-
-	case <-ctx.Done():
-		fmt.Println("context timeout exceeded/got cancelled")
-
 	case sigtype := <-sig:
 		cancel()
 		fmt.Printf("%s signal received. exiting...\n", sigtype.String())
@@ -139,11 +137,15 @@ func scraper(ctx context.Context, pool *core.Container, wb *persist.WriteBuffer)
 		// Load next commit's relative url
 		softURL = nextCommitAnchor.Url
 
-		// bypass rate limiting quota for multiple request, please give larger timeout
+		// bypass rate limiting quota for multiple request, please give larger timeout accordingly
 		if (cnt+1)%50 == 0 {
-			time.Sleep(5 * time.Second)
 			if cnt >= 150 {
-				time.Sleep(5 * time.Second)
+				err = utils.Sleep(ctx, 5*time.Second)
+			} else {
+				err = utils.Sleep(ctx, 10*time.Second)
+			}
+			if err != nil {
+				return err
 			}
 		}
 	}

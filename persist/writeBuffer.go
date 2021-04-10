@@ -3,9 +3,8 @@ package persist
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"time"
+	"sync"
 )
 
 // Message struct, stores message content and the filename where if's going to be saved
@@ -16,10 +15,11 @@ type Message struct {
 // A temporary buffer to store list of Message
 type WriteBuffer struct {
 	dir    string
-	ticker *time.Ticker //snapshotting period
-	queue  *Queue       //thread safe queue
-	quit   chan struct{}
+	queue  chan Message //thread safe queue
+	wgroup sync.WaitGroup
 }
+
+const capacity = 16
 
 func NewWriteBuffer(directory string) (*WriteBuffer, error) {
 	dirAbs, err := filepath.Abs(directory)
@@ -27,26 +27,24 @@ func NewWriteBuffer(directory string) (*WriteBuffer, error) {
 		return nil, err
 	}
 	return &WriteBuffer{
-		dir:    dirAbs,
-		ticker: time.NewTicker(time.Second),
-		queue:  newQueue(),
-		quit:   make(chan struct{}),
+		dir:   dirAbs,
+		queue: make(chan Message, capacity),
 	}, nil
 }
 
 // Init Initialize incremental snapshotting
-func (w *WriteBuffer) Init() {
+func (w *WriteBuffer) Init(quit chan error) {
+	w.wgroup.Add(1)
+
 	go func() {
-		fmt.Println("Snapshotting Initiated")
-		for {
-			select {
-			case <-w.ticker.C:
-				err := w.periodicDumpContent()
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "error while writing commits: %s", err)
-				}
-			case <-w.quit:
-				fmt.Println("Backup successful")
+		defer w.wgroup.Done()
+		fmt.Println("Backup Initiated")
+		for mesg := range w.queue {
+			path := filepath.Join(w.dir, mesg.Fname)
+
+			err := ioutil.WriteFile(path, []byte(mesg.Body), 0644)
+			if err != nil {
+				quit <- fmt.Errorf("error while writing content to disk: %s\n", err)
 				return
 			}
 		}
@@ -55,37 +53,16 @@ func (w *WriteBuffer) Init() {
 
 // Add Message to the buffer
 func (w *WriteBuffer) AppendContent(message, filename string) {
-	w.queue.Push(Message{
+	w.queue <- Message{
 		Fname: filename,
 		Body:  message,
-	})
-}
-
-// Flush the queue content by writing messages to the specific directory
-func (w *WriteBuffer) periodicDumpContent() error {
-	for {
-		out := w.queue.Pop()
-		if out == nil {
-			return nil
-		}
-		mesg := out.(Message)
-		path := filepath.Join(w.dir, mesg.Fname)
-
-		err := ioutil.WriteFile(path, []byte(mesg.Body), 0644)
-		if err != nil {
-			return err
-		}
 	}
-	return nil
 }
 
 // Quit function to shut down Snapshotting
 func (w *WriteBuffer) Quit() {
-	w.ticker.Stop()
-	close(w.quit)
-	//dump the rest overs
-	err := w.periodicDumpContent()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error while writing commits: %s", err)
-	}
+	close(w.queue)
+	// wait for the buffer to get fully empty
+	w.wgroup.Wait()
+	fmt.Println("Backup Successful")
 }
