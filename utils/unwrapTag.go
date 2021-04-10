@@ -11,7 +11,8 @@ type Anchor struct {
 	Name, Url string
 }
 type Pre struct {
-	RevBy, Message string
+	Message string
+	RevBy   []string
 }
 
 const anyUNICODE = `\p{L}\p{Z}\p{C}\p{N}\p{S}\p{P}\p{M}`
@@ -55,12 +56,17 @@ func UnwrapPre(str string) (*Pre, error) {
 	pre.Message = mesg[1]
 
 	reg2 := regexp.MustCompile(`[ -~]*Reviewed-by:([ -~]*)`)
-	revby := reg2.FindStringSubmatch(str)
-	if len(revby) < 1 {
+	preSplits := strings.Split(str, "\n")
+	for _, split := range preSplits {
+		revby := reg2.FindStringSubmatch(split)
+		if len(revby) > 1 {
+			pre.RevBy = append(pre.RevBy, revby[1])
+		}
+	}
+	if len(pre.RevBy) == 0 {
 		fmt.Println(mesg)
 		return nil, fmt.Errorf("invalid branch name/url: error while parsing commit message (No Reviewed-By)")
 	}
-	pre.RevBy = revby[1]
 
 	return pre, nil
 }

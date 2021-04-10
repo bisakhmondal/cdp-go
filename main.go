@@ -177,10 +177,10 @@ func parseCommitPage(ctx context.Context, client *cdp.Client, pool *core.Contain
 		return nil, err
 	}
 
-	// Parsed email, name of Reviewed-BY
-	revBy := core.ExtractIdentity(parsedPre.RevBy)
+	// Parsed email, name of Reviewed-BY /s
+	revBy := core.ExtractIdentities(parsedPre.RevBy)
 	// Increment his/her review count
-	pool.AddReview(revBy)
+	pool.AddReviews(revBy)
 
 	// Current commitID & commit author & next url
 	tableDatas, err := client.DOM.QuerySelectorAll(ctx, &dom.QuerySelectorAllArgs{

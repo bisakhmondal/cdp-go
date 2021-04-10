@@ -2,8 +2,6 @@
 
 ### A fully functional dynamic parser and analyser for chromium git repo using chrome devtools protocol (CDP)
 
-A bit background, the main thread spawns a new thread that involves in fetching resources while another thread get fired up periodically and write the fetched content to the disk.
-
 ## How to run
 
 ### In Local Environment

@@ -30,7 +30,7 @@ func (c *Container) AddCommit(id *Identity) {
 }
 
 // Method to increment review count for a particular identity
-func (c *Container) AddReview(id *Identity) {
+func (c *Container) addReview(id *Identity) {
 	dev, ok := c.maps[id.Email]
 
 	if !ok {
@@ -39,6 +39,13 @@ func (c *Container) AddReview(id *Identity) {
 	}
 
 	dev.NumReview++
+}
+
+// Method to increment review counts for multiple identities
+func (c *Container) AddReviews(ids []*Identity) {
+	for _, id := range ids {
+		c.addReview(id)
+	}
 }
 
 // Method to write all gathered information into a csv file

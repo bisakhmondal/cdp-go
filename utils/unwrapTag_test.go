@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -23,31 +22,27 @@ Commit-Queue: Andrew Lassalle &lt;andrewlassalle@chromium.org&gt;
 Reviewed-by: Jorge Lucangeli Obes &lt;jorgelo@chromium.org&gt;
 </pre>
 `
-	reg := regexp.MustCompile(`<pre[ -~]*>([ -~\n]*)BUG`)
-
-	gotMatch := reg.FindStringSubmatch(pre)
-	wantPre := `policy: Demote policy.PromptForDownloadLocation to informational
+	got, err := UnwrapPre(pre)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantMessage := `policy: Demote policy.PromptForDownloadLocation to informational
 
 Temporarily mark policy.PromptForDownloadLocation to informational
 in order not to block the CQ.
 
 `
-	if len(gotMatch) < 1 {
-		t.Fatal("can't parse message in pre tag")
+	if got.Message != wantMessage {
+		t.Fatal("Error while parsing message")
 	}
 
-	if gotMatch[1] != wantPre {
-		t.Fatal("capture group failed")
-	}
-
-	revBy := regexp.MustCompile(`[ -~]*Reviewed-by:([ -~]*)`)
-	gotMatchRev := revBy.FindStringSubmatch(pre)
-	if len(gotMatchRev) < 1 {
-		t.Fatal("can't parse Reviewed-by in pre tag")
-	}
 	wantRev := "Jorge Lucangeli Obes &lt;jorgelo@chromium.org&gt;"
 
-	if strings.Trim(gotMatchRev[1], " ") != wantRev {
+	if len(got.RevBy) == 0 {
+		t.Fatal("error while parsing reviewed by")
+	}
+
+	if strings.Trim(got.RevBy[0], " ") != wantRev {
 		t.Fatal("error during regex match")
 	}
 }

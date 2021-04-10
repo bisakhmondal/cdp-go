@@ -27,3 +27,11 @@ func ExtractIdentity(str string) *Identity {
 
 	return id
 }
+
+func ExtractIdentities(str []string) []*Identity {
+	var ids []*Identity
+	for _, id := range str {
+		ids = append(ids, ExtractIdentity(id))
+	}
+	return ids
+}
