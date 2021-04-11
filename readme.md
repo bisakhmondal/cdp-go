@@ -67,7 +67,7 @@ A full example can be summarized as
 ```
 
 Program output
-![image](https://user-images.githubusercontent.com/41498427/113560638-e7fa6a00-9620-11eb-98c3-ee42a98a36e3.png)
+![image](https://user-images.githubusercontent.com/41498427/114312800-8bf87f80-9b11-11eb-807b-c9dc52fae8e8.png)
 
 ** In case you feel any trouble in opening files, saved through docker container, please run
 
