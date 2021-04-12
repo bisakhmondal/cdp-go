@@ -140,9 +140,9 @@ func scraper(ctx context.Context, pool *core.Container, wb *persist.WriteBuffer)
 		// bypass rate limiting quota for multiple request, please give larger timeout accordingly
 		if (cnt+1)%50 == 0 {
 			if cnt >= 150 {
-				err = utils.Sleep(ctx, 5*time.Second)
-			} else {
 				err = utils.Sleep(ctx, 10*time.Second)
+			} else {
+				err = utils.Sleep(ctx, 6*time.Second)
 			}
 			if err != nil {
 				return err
