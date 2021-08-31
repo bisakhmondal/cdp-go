@@ -1,4 +1,4 @@
-# Chromium Starter work
+# Google Git (Gerrit) Scraper - Through Chrome DevTools Protocol
 
 ### A fully functional dynamic parser and analyser for chromium git repo using chrome devtools protocol (CDP)
 **Problem Statement**: [link](https://docs.google.com/document/d/1mAPQ1vpnFdiKo89oyLOPkM87bDW1WUVC4NWZC1mNiYY/edit?usp=sharing)
@@ -21,7 +21,7 @@ go run main.go
 Flag Name | Default Flag Value | Usage |
 ---- | --- | --- |
 -timeout  | 20 | context timeout in seconds|
--repo | /chromium.googlesource.com/chromiumos/platform/tast |Repository URL |
+-repo | [/chromium.googlesource.com/chromiumos/platform/tast](https://chromium.googlesource.com/chromiumos/platform/tast) |Repository URL |
 -branch  | main | branch name where the parser should run |
 -dir | ./commits |  folder where parsed commit messages is going to be stored |
 -csvpath |stats.csv  | csv file location where the details statistics is going to be stored |
